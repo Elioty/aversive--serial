@@ -34,7 +34,7 @@ int set_interface_attribs(int fd, speed_t speed, SerialStream::ParityMode p, boo
   tty.c_cflag |= (CLOCAL | CREAD); // ignore modem controls,
   // enable reading
   tty.c_cflag &= ~(PARENB | PARODD); // shut off parity
-  tty.c_cflag |= p == SerialStream::PARITY ? PARENB : 0; // this line has been changed
+  tty.c_cflag |= (p == SerialStream::PARITY || p == SerialStream::ODD) ? PARENB : 0; // this line has been changed
   tty.c_cflag |= p == SerialStream::ODD ? PARODD : 0; // this line has been added
   // originally: tty.c_cflag |= parity;
   tty.c_cflag &= ~CSTOPB;
