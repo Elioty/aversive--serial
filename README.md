@@ -42,3 +42,5 @@ To compile your code, add the following parameters:
 
 To link against the library, add the following parameters:
 -Lpath_to_aversive++serial/build -laversive_serial
+
+Another method has been added: flush(void), wait for all the characters written into the stream to be truly sent to the device.

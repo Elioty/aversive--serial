@@ -17,6 +17,8 @@ public:
   
   bool opened(void) const;
   
+  void flush(void);
+  
   char getValue(void);
   
   void setValue(char c);

@@ -73,6 +73,12 @@ bool SerialStream::opened(void) const {
   return _fd != -1;
 }
 
+void SerialStream::flush(void) {
+  if(opened()) {
+    tcdrain(_fd);
+  }
+}
+
 char SerialStream::getValue(void) {
   if(!opened()) {
     return 0;
