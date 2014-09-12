@@ -5,19 +5,22 @@
 #include <fcntl.h>
 #include <cstring>
 
-// Function from http://stackoverflow.com/questions/6947413#answer-6947758
-// changed speed's type from int to speed_t
-// changed parity's type from int to bool
-// add should_block argument
-int set_interface_attribs(int fd, speed_t speed, SerialStream::ParityMode p, bool should_block) {
-  struct termios tty;
+// Function initially from from http://stackoverflow.com/questions/6947413#answer-6947758
+bool setInterfaceAttr(int fd, speed_t speed, SerialStream::ParityMode p, bool should_block) {
+  termios tty;
   memset(&tty, 0, sizeof(tty));
-  if(tcgetattr(fd, &tty) != 0) {
-    return -1;
+  
+  if(tcgetattr(fd, &tty) < 0) {
+    return false;
   }
   
-  cfsetospeed(&tty, speed);
-  cfsetispeed(&tty, speed);
+  if(cfsetospeed(&tty, speed) < 0) {
+    return false;
+  }
+  
+  if(cfsetispeed(&tty, speed) < 0) {
+    return false;
+  }
   
   tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; // 8-bit chars
   // disable IGNBRK for mismatched speed tests; otherwise receive break
@@ -40,14 +43,15 @@ int set_interface_attribs(int fd, speed_t speed, SerialStream::ParityMode p, boo
   tty.c_cflag &= ~CSTOPB;
   tty.c_cflag &= ~CRTSCTS;
   
-  if(tcsetattr(fd, TCSANOW, &tty) != 0) {
-    return -1;
+  if(tcsetattr(fd, TCSANOW, &tty) < 0) {
+    return false;
   }
-  return 0;
+  
+  return true;
 }
 
 SerialStream::SerialStream(const char* path, speed_t baudrate, SerialStream::ParityMode parity)
-  : _fd(-1) {
+  : _fd(INVALID_FD) {
   _fd = open(path, O_RDWR | O_NOCTTY | O_SYNC);
   
   // Could not open
@@ -55,10 +59,17 @@ SerialStream::SerialStream(const char* path, speed_t baudrate, SerialStream::Par
     return;
   }
   
-  // Could not set the interface properly
-  if(set_interface_attribs(_fd, baudrate, parity, true) != 0) {
+  // Is not a tty
+  if(!isatty(_fd)) {
     close(_fd);
-    _fd = 0;
+    _fd = INVALID_FD;
+    return;
+  }
+
+  // Could not set the interface properly
+  if(!setInterfaceAttr(_fd, baudrate, parity, true)) {
+    close(_fd);
+    _fd = INVALID_FD;
     return;
   }
 }
@@ -66,14 +77,15 @@ SerialStream::SerialStream(const char* path, speed_t baudrate, SerialStream::Par
 SerialStream::~SerialStream(void) {
   if(opened()) {
     close(_fd);
+    _fd = INVALID_FD;
   }
 }
 
 bool SerialStream::opened(void) const {
-  return _fd != -1;
+  return _fd != INVALID_FD;
 }
 
-void SerialStream::flush(void) {
+void SerialStream::flush(void) const {
   if(opened()) {
     tcdrain(_fd);
   }
@@ -83,9 +95,10 @@ char SerialStream::getValue(void) {
   if(!opened()) {
     return 0;
   }
+  
   char c;
-  int unused __attribute__((unused));
-  unused = read(_fd, &c, 1);
+  while(read(_fd, &c, 1) == 0) {
+  }
   return c;
 }
 
@@ -93,6 +106,7 @@ void SerialStream::setValue(char c) {
   if(!opened()) {
     return;
   }
-  int unused __attribute__((unused));
-  unused = write(_fd, &c, 1);
+  
+  while(write(_fd, &c, 1) == 0) {
+  }
 }

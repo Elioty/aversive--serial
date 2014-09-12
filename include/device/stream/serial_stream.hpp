@@ -1,12 +1,13 @@
 #ifndef SERIAL_STREAM_HPP
 #define SERIAL_STREAM_HPP
 
-#include <base/integer.hpp>
 #include <device/stream/stream.hpp>
 #include <termios.h>
 
 class SerialStream : public Stream {
   int _fd;
+
+  static constexpr int INVALID_FD = -1;
   
 public:
   enum ParityMode { NONE, PARITY, ODD };
@@ -17,7 +18,7 @@ public:
   
   bool opened(void) const;
   
-  void flush(void);
+  void flush(void) const;
   
   char getValue(void);
   
